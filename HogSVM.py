@@ -1,3 +1,5 @@
+import sys
+
 from cv2 import cv2
 import numpy as np
 
@@ -36,6 +38,7 @@ def svm_init(C=12.5, gamma=0.50625):
     model = cv2.ml.SVM_create()
     model.setGamma(gamma)
     model.setC(C)
+    model.setKernel(cv2.ml.SVM_LINEAR)
     model.setTermCriteria((cv2.TERM_CRITERIA_MAX_ITER, 100, 1e-6))
     return model
 
@@ -67,7 +70,7 @@ def raw_pixels(img):
 
 digits, labels = load_digits_and_labels("digits.png")
 
-rand = np.random.RandomState(1234)
+rand = np.random.RandomState()
 
 shuffle = rand.permutation(len(digits))
 digits, labels = digits[shuffle], labels[shuffle]
@@ -76,7 +79,8 @@ hog = get_hog()
 
 hog_descriptors = []
 for img in digits:
-    hog_descriptors.append(hog.compute(deskew(img)))
+    deskewed = deskew(img)
+    hog_descriptors.append(hog.compute(img))
 hog_descriptors = np.squeeze(hog_descriptors)
 
 partition = int(0.5 * len(hog_descriptors))
@@ -89,3 +93,6 @@ svm_train(model, hog_descriptors_train, labels_train)
 
 print("evaluate svm ...")
 svm_evaluate(model, hog_descriptors_test, labels_test)
+
+print(model.getUncompressedSupportVectors())
+hog.setSVMDetector(model.getClassWeights())
